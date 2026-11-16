@@ -10,7 +10,7 @@
             padding: 0;
             overflow: hidden;
             font-family: 'Georgia', serif;
-            background-color: #1a1a1a;
+            background-color: #ddeeff;
             user-select: none;
         }
         #canvas-container {
@@ -38,7 +38,6 @@
             font-weight: bold;
             color: #5c2c16;
         }
-        /* Меню выбора растений */
         .shop-panel {
             position: absolute;
             bottom: 20px;
@@ -73,7 +72,6 @@
             background: #dfcfb2;
             transform: translateY(-2px);
         }
-        /* Панель управления выбранным горшком */
         .action-panel {
             display: none;
             position: absolute;
@@ -116,7 +114,6 @@
             font-weight: bold;
             z-index: 10;
         }
-        /* Модальное окно */
         .modal {
             display: none;
             position: fixed;
@@ -146,8 +143,8 @@
             border-radius: 6px;
         }
     </style>
-    <!-- Three.js для 3D -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Локальная надежная версия Three.js -->
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
 </head>
 <body>
 
@@ -159,7 +156,6 @@
 
     <button class="btn-prize" onclick="openModal()">🎁 Приз</button>
 
-    <!-- Всплывающее меню действий при клике на горшок -->
     <div class="action-panel" id="actionPanel">
         <div id="selectedPotTitle" style="font-weight: bold; font-size:12px; margin-bottom:5px; color:#5c2c16;">Горшок</div>
         <button class="action-btn" onclick="feedWater()">💧 Полить (-1 воды)</button>
@@ -168,7 +164,6 @@
         <button style="background:none; border:none; color:#666; font-size:10px; cursor:pointer; margin-top:5px;" onclick="closeActionPanel()">Закрыть</button>
     </div>
 
-    <!-- Меню выбора растений для посадки (5 видов: 3 базовых + 2 редких) -->
     <div class="shop-panel">
         <div class="plant-btn" onclick="selectSeedToPlant('Петуния')">🌱 Петуния<br><span style="color:#2e7d32;">Базовый</span></div>
         <div class="plant-btn" onclick="selectSeedToPlant('Диасция')">🌱 Диасция<br><span style="color:#2e7d32;">Базовый</span></div>
@@ -189,11 +184,14 @@
     <div id="canvas-container"></div>
 
 <script>
-    // --- 3D СЦЕНА ---
+    // Проверка загрузки Three.js
+    if (typeof THREE === 'undefined') {
+        alert('Ошибка загрузки 3D движка. Проверьте интернет-соединение.');
+    }
+
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xddeeff);
-    scene.fog = new THREE.Fog(0xddeeff, 15, 40);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 4, 9);
@@ -201,25 +199,198 @@
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.8);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.9);
     dirLight.position.set(5, 15, 5);
     scene.add(dirLight);
 
-    // Пол и теплица
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), new THREE.MeshStandardMaterial({ color: 0x8b5a2b }));
+    // Пол и стеллаж
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), new THREE.MeshBasicMaterial({ color: 0x8b5a2b }));
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    const greenhouse = new THREE.Mesh(new THREE.BoxGeometry(8, 5, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.12 }));
-    greenhouse.position.y = 2.5;
-    scene.add(greenhouse);
+    const shelfBoard = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 1.2), new THREE.MeshBasicMaterial({ color: 0x5c2c16 }));
+    shelfBoard.position.set(0, 1.2, 0);
+    scene.add(shelfBoard);
 
-    // --- ЕДИНСТВЕННЫЙ ОТКРЫТЫЙ СТЕЛЛАЖ ДЛЯ СТАРТА ---
-    const shelfGroup = new THREE.Group();
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c2c16 });
-    
-    // Полка
+    // 3 горшка на стеллаже
+    const potsData = [
+        { x: -1.2, potMesh: null, plantMesh: null, type: null, progress: 0, level: 0 },
+        { x: 0.0,  potMesh: null, plantMesh: null, type: null, progress: 0, level: 0 },
+        { x: 1.2,  potMesh: null, plantMesh: null, type: null, progress: 0, level: 0 }
+    ];
+
+    const potGeo = new THREE.CylinderGeometry(0.2, 0.15, 0.3, 8);
+    const potMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
+
+    potsData.forEach((p) => {
+        const pot = new THREE.Mesh(potGeo, potMat);
+        pot.position.set(p.x, 1.4, 0);
+        scene.add(pot);
+        p.potMesh = pot;
+    });
+
+    let water = 5;
+    let sun = 2;
+    let collected = JSON.parse(localStorage.getItem('af_collected_v2')) || [];
+    let selectedPotIndex = null;
+    let chosenSeedType = null;
+
+    function updateUI() {
+        document.getElementById('waterCount').innerText = water;
+        document.getElementById('sunCount').innerText = sun;
+        document.getElementById('collectedCount').innerText = collected.length;
+    }
+    updateUI();
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener('click', (event) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersects = raycaster.intersectObjects(potsData.map(p => p.potMesh));
+        if (intersects.length > 0) {
+            const hitPot = intersects[0].object;
+            const index = potsData.findIndex(p => p.potMesh === hitPot);
+            if (index !== -1) {
+                selectedPotIndex = index;
+                showActionPanel(index);
+            }
+        }
+    });
+
+    function showActionPanel(index) {
+        const panel = document.getElementById('actionPanel');
+        const title = document.getElementById('selectedPotTitle');
+        const p = potsData[index];
+        
+        if (!p.type) {
+            if (chosenSeedType) {
+                p.type = chosenSeedType;
+                p.progress = 0;
+                p.level = 1;
+                updatePlantVisual(p);
+                title.innerText = `Посажено: ${p.type} (Уровень 1)`;
+                panel.style.display = 'block';
+            } else {
+                alert('Сначала выберите растение внизу из меню посадки!');
+                panel.style.display = 'none';
+            }
+        } else {
+            title.innerText = `${p.type} | Уровень: ${p.level} | Очки: ${p.progress}/10`;
+            panel.style.display = 'block';
+        }
+    }
+
+    function closeActionPanel() {
+        document.getElementById('actionPanel').style.display = 'none';
+    }
+
+    function selectSeedToPlant(typeName) {
+        chosenSeedType = typeName;
+        alert(`Вы выбрали: ${typeName}. Теперь нажмите на горшок на стеллаже!`);
+    }
+
+    function updatePlantVisual(p) {
+        if (p.plantMesh) scene.remove(p.plantMesh);
+
+        let color = 0x2e7d32;
+        if (p.type === 'Гортензия') color = 0x3f51b5;
+        if (p.type === 'Георгин') color = 0xe91e63;
+        if (p.type === 'Петуния') color = 0x9c27b0;
+        if (p.type === 'Диасция') color = 0xff9800;
+        if (p.type === 'Остеоспермум') color = 0xe91e63;
+
+        const scale = 0.2 + (p.level * 0.12);
+        const plant = new THREE.Mesh(new THREE.DodecahedronGeometry(scale), new THREE.MeshBasicMaterial({ color: color }));
+        plant.position.set(p.potMesh.position.x, 1.6 + (p.level * 0.08), 0);
+        scene.add(plant);
+        p.plantMesh = plant;
+    }
+
+    function feedWater() {
+        if (selectedPotIndex === null) return;
+        const p = potsData[selectedPotIndex];
+        if (water >= 1) {
+            water -= 1;
+            p.progress += 5;
+            checkGrowth(p);
+            updateUI();
+            showActionPanel(selectedPotIndex);
+        } else {
+            alert('💧 Не хватает воды!');
+        }
+    }
+
+    function feedSun() {
+        if (selectedPotIndex === null) return;
+        const p = potsData[selectedPotIndex];
+        if (sun >= 2) {
+            sun -= 2;
+            p.progress += 5;
+            checkGrowth(p);
+            updateUI();
+            showActionPanel(selectedPotIndex);
+        } else {
+            alert('☀️ Не хватает солнца!');
+        }
+    }
+
+    function checkGrowth(p) {
+        if (p.progress >= 10) {
+            p.progress = 0;
+            p.level++;
+            if (p.level > 3) {
+                collected.push(p.type);
+                localStorage.setItem('af_collected_v2', JSON.stringify(collected));
+                alert(`🌸 Ваша ${p.type} выросла и отправлена в коллекцию!`);
+                scene.remove(p.plantMesh);
+                p.plantMesh = null;
+                p.type = null;
+                p.level = 0;
+                closeActionPanel();
+            } else {
+                alert(`✨ Растение перешло на Уровень ${p.level}!`);
+                updatePlantVisual(p);
+            }
+        }
+    }
+
+    setInterval(() => { if (water < 10) { water += 1; updateUI(); } }, 2 * 60 * 60 * 1000);
+    setInterval(() => { if (sun < 10) { sun += 1; updateUI(); } }, 4 * 60 * 60 * 1000);
+
+    function openModal() {
+        const modal = document.getElementById('modal');
+        const promo = document.getElementById('promoCode');
+        const text = document.getElementById('modalText');
+        if (collected.length >= 10) {
+            text.innerText = "Поздравляем! Ваш промокод:";
+            promo.style.display = 'block';
+        } else {
+            text.innerText = `Собрано цветов: ${collected.length}/10.`;
+            promo.style.display = 'none';
+        }
+        modal.style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
+
+</body>
+</html>
