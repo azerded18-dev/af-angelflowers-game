@@ -3,354 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сад AF AngelFlowers — Мини-игра</title>
+    <title>3D Теплица AF AngelFlowers</title>
     <style>
-        :root {
-            --primary-color: #5c2c16;
-            --accent-color: #8b4513;
-            --bg-color: #fdfbf7;
-            --card-bg: #fffef9;
-            --text-color: #333;
-        }
         body {
-            font-family: 'Georgia', serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
             margin: 0;
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .container {
-            width: 100%;
-            max-width: 420px;
-            background: var(--card-bg);
-            border: 3px solid var(--primary-color);
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            box-sizing: border-box;
-        }
-        h1 {
-            font-size: 20px;
-            text-align: center;
-            color: var(--primary-color);
-            margin-top: 0;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-        }
-        .subtitle {
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 15px;
-        }
-        .stats-panel {
-            display: flex;
-            justify-content: space-around;
-            background: #f4ebd9;
-            padding: 8px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 13px;
-            font-weight: bold;
-        }
-        .garden-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .plot {
-            background: #e8dcc4;
-            border: 2px dashed var(--accent-color);
-            border-radius: 8px;
-            height: 90px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s;
-            text-align: center;
-            padding: 5px;
-            box-sizing: border-box;
-        }
-        .plot:hover {
-            background: #dfcfb2;
-        }
-        .plot img {
-            width: 45px;
-            height: 45px;
-            object-fit: contain;
-            margin-bottom: 3px;
-        }
-        .plot-text {
-            font-size: 10px;
-            color: var(--primary-color);
-            font-weight: bold;
-        }
-        .progress-container {
-            width: 80%;
-            background: #ddd;
-            border-radius: 4px;
-            height: 6px;
-            margin-top: 4px;
+            padding: 0;
             overflow: hidden;
-            display: none;
+            font-family: 'Georgia', serif;
+            background-color: #1a1a1a;
+            user-select: none;
         }
-        .progress-bar {
-            height: 100%;
-            background: #4caf50;
-            width: 0%;
-            transition: width 0.3s;
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        .ui-panel {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(253, 251, 247, 0.95);
+            border: 2px solid #5c2c16;
+            border-radius: 12px;
+            padding: 10px 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        .stat-item {
+            font-size: 14px;
+            font-weight: bold;
+            color: #5c2c16;
+        }
+        .controls-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 10;
         }
         .btn {
-            background: var(--primary-color);
+            background: #5c2c16;
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
+            padding: 12px 20px;
+            border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
-            width: 100%;
             font-family: 'Georgia', serif;
             font-weight: bold;
-            margin-bottom: 8px;
-            text-transform: uppercase;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: background 0.2s, transform 0.1s;
         }
         .btn:hover {
-            background: var(--accent-color);
+            background: #8b4513;
+            transform: translateY(-2px);
         }
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
+        .btn:active {
+            transform: translateY(0);
         }
-        .inventory {
-            background: #faf6ed;
-            border: 1px solid #dcd1be;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 15px;
+        .btn-sun {
+            background: #d4a373;
+            color: #333;
         }
-        .inventory h3 {
-            font-size: 13px;
-            margin: 0 0 8px 0;
-            color: var(--primary-color);
-            text-align: center;
+        .btn-sun:hover {
+            background: #ccd5ae;
         }
-        .collected-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            justify-content: center;
-            max-height: 70px;
-            overflow-y: auto;
-        }
-        .badge {
-            background: #e4d5bc;
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-        }
+        /* Модальное окно */
         .modal {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             justify-content: center;
             align-items: center;
             z-index: 100;
         }
         .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
+            background: #fffef9;
+            padding: 25px;
+            border-radius: 12px;
             width: 85%;
-            max-width: 320px;
+            max-width: 340px;
             text-align: center;
-            border: 2px solid var(--primary-color);
+            border: 3px solid #5c2c16;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
         }
         .promo-code {
             background: #f4ebd9;
-            padding: 8px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 18px;
             font-weight: bold;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             color: #d32f2f;
-            margin: 10px 0;
-            border: 1px dashed var(--accent-color);
-            border-radius: 4px;
+            margin: 15px 0;
+            border: 1px dashed #8b4513;
+            border-radius: 6px;
         }
     </style>
+    <!-- Подключаем Three.js для 3D графики -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-<div class="container">
-    <h1>AF AngelFlowers</h1>
-    <div class="subtitle">Вырасти свой сад в Тамбове и получи приз!</div>
-
-    <div class="stats-panel">
-        <div>Вода: <span id="waterCount">5</span> 💧</div>
-        <div>Собрано: <span id="collectedCount">0</span>/10 🌱</div>
+    <div class="ui-panel">
+        <div class="stat-item">💧 Вода: <span id="waterCount">5</span></div>
+        <div class="stat-item">🌱 Собрано: <span id="collectedCount">0</span>/10</div>
     </div>
 
-    <div class="garden-grid" id="gardenGrid">
-        <!-- Грядки генерируются JS -->
+    <div class="controls-panel">
+        <button class="btn" onclick="waterPlants()">🚿 Полить (Лейка)</button>
+        <button class="btn btn-sun" onclick="shineSun()">☀️ Солнышко</button>
+        <button class="btn" onclick="openModal()">🎁 Приз</button>
     </div>
 
-    <button class="btn" id="waterAllBtn" onclick="waterAll()">Полить все грядки 🚿</button>
-    <button class="btn" onclick="openPromoModal()">🎁 Получить приз / Промокод</button>
-</div>
-
-<!-- Модальное окно приза -->
-<div class="modal" id="promoModal">
-    <div class="modal-content">
-        <h3 style="color: var(--primary-color); margin-top:0;">Награда садовника</h3>
-        <p id="modalText">Соберите 10 одинаковых растений, чтобы получить бесплатный черенок к заказу!</p>
-        <div class="promo-code" id="promoCodeContainer" style="display:none;">AF-GIFT-2026</div>
-        <button class="btn" onclick="closePromoModal()">Закрыть</button>
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3 style="color: #5c2c16; margin-top:0;">Награда садовника AF</h3>
+            <p id="modalText">Вырастите и соберите 10 растений в 3D-теплице, чтобы получить бесплатный черенок!</p>
+            <div class="promo-code" id="promoCode" style="display:none;">AF-3D-GIFT</div>
+            <button class="btn" onclick="closeModal()" style="width:100%; margin-top:10px;">Закрыть</button>
+        </div>
     </div>
-</div>
+
+    <div id="canvas-container"></div>
 
 <script>
-    // Инициализация игры
-    const plotsCount = 6;
+    // --- 3D СЦЕНА (Three.js) ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xddeeff); // Небо за теплицей
+    scene.fog = new THREE.Fog(0xddeeff, 20, 50);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 6, 14);
+    camera.lookAt(0, 2, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    // Освещение
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.8);
+    dirLight.position.set(10, 20, 10);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    // Пол теплицы
+    const floorGeo = new THREE.PlaneGeometry(20, 20);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Стены теплицы (стекло/каркас)
+    const wallsMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, roughness: 0.1 });
+    const greenhouseGeo = new THREE.BoxGeometry(12, 7, 12);
+    const greenhouse = new THREE.Mesh(greenhouseGeo, wallsMat);
+    greenhouse.position.y = 3.5;
+    scene.add(greenhouse);
+
+    // --- СОЗДАНИЕ СТЕЛЛАЖЕЙ И РАСТЕНИЙ ---
+    const shelves = [];
+    const plantPots = [];
+
+    // Функция создания стеллажа
+    function createShelf(x, z, isClosed) {
+        const shelfGroup = new THREE.Group();
+        
+        // Каркас стеллажа
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c2c16, roughness: 0.7 });
+        
+        // Полки (3 уровня)
+        for (let i = 0; i < 3; i++) {
+            const shelfBoard = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 1.2), woodMat);
+            shelfBoard.position.set(0, i * 1.2, 0);
+            shelfBoard.castShadow = true;
+            shelfBoard.receiveShadow = true;
+            shelfGroup.add(shelfBoard);
+        }
+
+        // Если стеллаж ЗАКРЫТЫЙ (как №1 и №4) — добавим боковые стенки и стеклянные дверцы
+        if (isClosed) {
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0xaaccff, transparent: true, opacity: 0.3 });
+            const glassDoor = new THREE.Mesh(new THREE.BoxGeometry(3, 3.6, 1.2), glassMat);
+            glassDoor.position.set(0, 1.2, 0);
+            shelfGroup.add(glassDoor);
+        }
+
+        // Растения на полках
+        const potMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const plantMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.5 });
+        const flowerMat = new THREE.MeshStandardMaterial({ color: 0x9c27b0 }); // Цветы остеоспермума
+
+        for (let level = 0; level < 3; level++) {
+            for (let p = -1; p <= 1; p++) {
+                const potGroup = new THREE.Group();
+                potGroup.position.set(p * 0.9, level * 1.2 + 0.25, 0);
+
+                // Горшок
+                const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.3, 8), potMat);
+                pot.castShadow = true;
+                potGroup.add(pot);
+
+                // Само растение (кустик)
+                const plant = new THREE.Mesh(new THREE.DodecahedronGeometry(0.25), plantMat);
+                plant.position.y = 0.3;
+                plant.scale.set(0.3, 0.3, 0.3); // Начинают маленькими
+                plant.castShadow = true;
+                potGroup.add(plant);
+
+                shelfGroup.add(potGroup);
+                plantPots.push({ mesh: plant, scale: 0.3, grown: false });
+            }
+        }
+
+        shelfGroup.position.set(x, 0, z);
+        scene.add(shelfGroup);
+        shelves.push(shelfGroup);
+    }
+
+    // Расставляем 4 стеллажа в теплице (1 и 4 — закрытые, 2 и 3 — открытые)
+    createShelf(-3.5, -2, true);   // Стеллаж 1 (Закрытый)
+    createShelf(-1.2, -2, false);  // Стеллаж 2 (Открытый)
+    createShelf(1.2, -2, false);   // Стеллаж 3 (Открытый)
+    createShelf(3.5, -2, true);    // Стеллаж 4 (Закрытый)
+
+    // --- ИГРОВАЯ ЛОГИКА ---
     let water = 5;
-    let plots = Array(plotsCount).fill(null).map(() => ({ state: 'empty', progress: 0, timer: null }));
-    let collectedItems = JSON.parse(localStorage.getItem('af_collected')) || [];
+    let collected = JSON.parse(localStorage.getItem('af_3d_collected')) || [];
 
-    const varieties = [
-        "Astra Purple", "3D Pink", "Double Yellow", "Double White", 
-        "3D Yellow '18", "Flowerpower 3D Violet Ice", "Octicade Yellow", "FlowerPower Pink Sun"
-    ];
-
-    function saveGame() {
-        localStorage.setItem('af_collected', JSON.stringify(collectedItems));
-    }
-
-    function renderGarden() {
-        const grid = document.getElementById('gardenGrid');
-        grid.innerHTML = '';
-
-        plots.forEach((plot, index) => {
-            const div = document.createElement('div');
-            div.className = 'plot';
-            
-            if (plot.state === 'empty') {
-                div.innerHTML = `<span style="font-size:20px;">🌱</span><span class="plot-text">Посадить</span>`;
-                div.onclick = () => plantSeed(index);
-            } else if (plot.state === 'growing') {
-                div.innerHTML = `
-                    <span style="font-size:20px;">🌿</span>
-                    <span class="plot-text">Растет...</span>
-                    <div class="progress-container" style="display:block;">
-                        <div class="progress-bar" style="width: ${plot.progress}%"></div>
-                    </div>
-                `;
-                div.onclick = () => waterPlant(index);
-            } else if (plot.state === 'ready') {
-                div.innerHTML = `<span style="font-size:24px;">🌸</span><span class="plot-text" style="color:#2e7d32;">Готово! (Собрать)</span>`;
-                div.onclick = () => harvestPlant(index);
-            }
-
-            grid.appendChild(div);
-        });
-
+    function updateUI() {
         document.getElementById('waterCount').innerText = water;
-        document.getElementById('collectedCount').innerText = collectedItems.length;
+        document.getElementById('collectedCount').innerText = collected.length;
     }
+    updateUI();
 
-    function plantSeed(index) {
-        if (plots[index].state === 'empty') {
-            const randomVariety = varieties[Math.floor(Math.random() * varieties.length)];
-            plots[index].state = 'growing';
-            plots[index].progress = 0;
-            plots[index].variety = randomVariety;
-            renderGarden();
-        }
-    }
-
-    function waterPlant(index) {
-        if (plots[index].state === 'growing') {
-            if (water > 0) {
-                water--;
-                plots[index].progress += 34;
-                if (plots[index].progress >= 100) {
-                    plots[index].progress = 100;
-                    plots[index].state = 'ready';
+    // Эффект лейки и полива
+    function waterPlants() {
+        if (water > 0) {
+            water--;
+            updateUI();
+            
+            // Анимация полива: слегка качаем камеру / растения
+            plantPots.forEach(p => {
+                if (!p.grown) {
+                    p.scale = Math.min(1, p.scale + 0.25);
+                    p.mesh.scale.set(p.scale, p.scale, p.scale);
+                    if (p.scale >= 1) p.grown = true;
                 }
-                renderGarden();
-            } else {
-                alert('Не хватает воды! Вода восстанавливается со временем или за активность в группе ВК.');
+            });
+
+            // Если все выросли — зачисляем в коллекцию
+            if (plantPots.every(p => p.grown)) {
+                collected.push("Остеоспермум 3D Сет");
+                localStorage.setItem('af_3d_collected', JSON.stringify(collected));
+                updateUI();
+                setTimeout(() => {
+                    alert('🌸 Поздравляем! Все растения на стеллажах полностью выросли и добавлены в вашу коллекцию!');
+                }, 300);
             }
+        } else {
+            alert('💧 Вода закончилась! Она восстанавливается со временем.');
         }
     }
 
-    function waterAll() {
-        let wateredAny = false;
-        plots.forEach((plot, index) => {
-            if (plot.state === 'growing' && water > 0) {
-                water--;
-                plot.progress += 34;
-                if (plot.progress >= 100) {
-                    plot.progress = 100;
-                    plot.state = 'ready';
-                }
-                wateredAny = true;
+    // Эффект солнышка
+    function shineSun() {
+        // Делаем свет ярче и меняем цвет неба на золотистый закат
+        dirLight.intensity = 1.5;
+        scene.background.setHex(0xfffae6);
+        
+        // Немного подращиваем растения от тепла солнца
+        plantPots.forEach(p => {
+            if (!p.grown) {
+                p.scale = Math.min(1, p.scale + 0.15);
+                p.mesh.scale.set(p.scale, p.scale, p.scale);
+                if (p.scale >= 1) p.grown = true;
             }
         });
-        if (wateredAny || water === 0) {
-            renderGarden();
-        } else {
-            alert('Нет растений для полива или закончилась вода!');
-        }
+
+        setTimeout(() => {
+            dirLight.intensity = 0.8;
+            scene.background.setHex(0xddeeff);
+        }, 1500);
     }
 
-    function harvestPlant(index) {
-        if (plots[index].state === 'ready') {
-            collectedItems.push(plots[index].variety);
-            saveGame();
-            plots[index] = { state: 'empty', progress: 0 };
-            renderGarden();
-            
-            // Восстановление воды за сбор
-            water += 2;
-            renderGarden();
-        }
-    }
-
-    function openPromoModal() {
-        const modal = document.getElementById('promoModal');
-        const modalText = document.getElementById('modalText');
-        const promoContainer = document.getElementById('promoCodeContainer');
-
-        if (collectedItems.length >= 10) {
-            modalText.innerText = "Поздравляем! Вы собрали коллекцию из 10 растений и получаете право на бесплатный черенок к заказу!";
-            promoContainer.style.display = 'block';
-        } else {
-            modalText.innerText = `У вас собрано ${collectedItems.length}/10 растений. Продолжайте выращивать цветы на грядках, чтобы разблокировать бесплатный черенок!`;
-            promoContainer.style.display = 'none';
-        }
-        modal.style.display = 'flex';
-    }
-
-    function closePromoModal() {
-        document.getElementById('promoModal').style.display = 'none';
-    }
-
-    // Автовосстановление воды каждые 30 секунд
+    // Автовосстановление воды
     setInterval(() => {
         if (water < 10) {
             water++;
-            renderGarden();
+            updateUI();
         }
-    }, 30000);
+    }, 25000);
 
-    renderGarden();
+    // Модальное окно
+    function openModal() {
+        const modal = document.getElementById('modal');
+        const promo = document.getElementById('promoCode');
+        const text = document.getElementById('modalText');
+        
+        if (collected.length >= 3) {
+            text.innerText = "Вы собрали отличную коллекцию в 3D-теплице! Ваш промокод на бесплатный черенок:";
+            promo.style.display = 'block';
+        } else {
+            text.innerText = `У собрано сетов: ${collected.length}. Поливайте цветы и включайте солнышко, чтобы вырастить коллекцию!`;
+            promo.style.display = 'none';
+        }
+        modal.style.display = 'flex';
+    }
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    // Анимация вращения / дыхания сцены
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // Адаптация под размер экрана телефона
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 </script>
 
 </body>
